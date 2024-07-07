@@ -1,0 +1,65 @@
+var lastValue; // Declare lastValue in the global scope
+
+function getLastValueInColumnB() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var columnB = sheet.getRange("B:B").getValues();
+  lastValue = columnB.filter(String).pop()[0]; // Assign value to global lastValue
+}
+
+getLastValueInColumnB(); // Call the function to initialize lastValue
+
+var swimmerEmail = lastValue; //this is the email requesting the pass count. 
+var replyto = "emailtobereplied@gmail.com"; //this is the email that'll get any responses
+var ss = SpreadsheetApp.openById("typeInTheIDoftheGSheetWithEmailsHere").getSheetByName("Sheet1").getRange(3,1,300,12).getValues()//this opens the spreadsheet that has all the emails in it, then looks at the tab called Sheet1. getRange(row, column, numRows, numColumns) so that means the 3rd row and the 1st column dragged down to the 8th row and the 12th column. In other words, from A3 to L8.
+var listOfEmails = ss.map(function(row) {
+return row[2];
+})//this is a function that takes the emails from the gsheet and puts them in a variable called listOfEmails as an array. 
+//Logger.log(listOfEmails)
+var rowNumber = listOfEmails.indexOf(swimmerEmail)//this variable detects the index of the email requesting the pass count. Helpful and important when trying to query the array. 
+var swimmerRow = ss[rowNumber] //this assigns the row of data that belongs to one swimmer to a variable called swimmerRow.
+var isYearly = ss[rowNumber][4] // this says if the person is a yearly swimmer or not. 
+var firstName = ss[rowNumber][0] + ", " //this extracts the first name from swimmerRow, ie. the first column, of the email requesting the pass count.
+var carryOver = ss[rowNumber][8] //this counts if the swimmer have any carry over passes. The code is a 3d array that pulls the row number and then the data in the 9th column from that row. 
+var passes = ss[rowNumber][9] // pulls the # of swims the person has. 
+var countOfSwims = ss[rowNumber][10] // counts how many times the person has already swum. 
+var totalPasses = carryOver + passes // counts how many passes the person has in total. 
+var remainingSwims = totalPasses - countOfSwims // counts how many swims remain. 
+var sumOwed = remainingSwims * -10 // multiplies the number of negative swims by negative 10 to get the sum they need to pay us. 
+var subject = "Hey! You Have " + remainingSwims + " Swim Passes Left"; // this is a string that I made to serve as the subject line. 
+var yearlySubject = "Hey! You've swum " + countOfSwims + " times this year";
+
+Logger.log("Name: " + firstName + ", Total Passes: " + totalPasses + ", Count of Swims: " + countOfSwims + ", Swims remaining: " + remainingSwims + ", IsYearly?: " + isYearly);
+
+var bodyYearly = "Hi " + firstName + "hope all is well.\n \nBased on our current records, you have a yearly swim pass and have swum " + countOfSwims + " times so far. If you have any questions or concerns, just hit reply!\n \nThanks, \nEugene"
+
+var bodyPositive = "Hi " + firstName + "hope all is well.\n \nBased on our current records, you have " + totalPasses + " swim passes in total, have swum " + countOfSwims + " times so far, and thus have " + remainingSwims + " swims left. To upgrade to a yearly pass, you can etransfer $300 to the club for a yearly pass, or $100 for another 10-pass. If you have any questions or concerns, just hit reply!\n \nThanks, \nEugene"
+
+var bodyNegative = "Hi " + firstName + "hope all is well.\n \nBased on our current records, you had " + totalPasses + " swim passes in total, have swum " + countOfSwims + " times so far, and thus have " + remainingSwims + " swims left. A negative balance means that you're $" + sumOwed + " in the red. To fix, you can e-transfer $" + sumOwed + " to the club or etransfer $300 for a yearly pass. If you have any questions or concerns, just hit reply!\n \nThanks, \nEugene"
+
+var bodyZero = "Hi " + firstName + "hope all is well.\n \nBased on our current records, you have " + totalPasses + " swim passes in total, have swum " + countOfSwims + " times so far, and thus have " + remainingSwims + " swims left. From here, you can e-transfer $300 to the club for a yearly pass, or $100 for another 10-pass. If you have any questions or concerns, just hit reply!\n \nThanks, \nEugene"
+
+var bodyConfused = "Hi, something unusual happened - please email us directly instead."
+
+function notifyPerson() {
+Utilities.sleep(5000);
+if (isYearly=="Yes") {
+MailApp.sendEmail(swimmerEmail, replyto, yearlySubject, bodyYearly);
+Logger.log(swimmerEmail, yearlySubject, bodyYearly);
+}
+else if (remainingSwims<0) {
+MailApp.sendEmail(swimmerEmail, replyto, subject, bodyNegative);
+Logger.log(swimmerEmail, subject, bodyNegative);
+}
+else if (remainingSwims>0) {
+MailApp.sendEmail(swimmerEmail, replyto, subject, bodyPositive);
+Logger.log(swimmerEmail, subject, bodyPositive);
+}
+else if (remainingSwims==0) {
+MailApp.sendEmail(swimmerEmail, replyto, subject, bodyPositive);
+Logger.log(swimmerEmail, subject, bodyPositive);
+}
+else {
+MailApp.sendEmail(swimmerEmail, replyto, subject, bodyConfused);
+Logger.log(swimmerEmail, subject, bodyConfused);
+}
+}
