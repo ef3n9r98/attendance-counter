@@ -1,0 +1,29 @@
+function downloadAndOpenDropboxFile() {
+  var dropboxLink = 'https://www.dropbox.com/linkToDropboxHere!!!&dl=1'
+  ; // Direct download link
+
+  // Step 1: Download the file from Dropbox using the direct link
+  var response = UrlFetchApp.fetch(dropboxLink);
+  var blob = response.getBlob();
+
+  // Step 2: Upload the file to Google Drive and convert it to Google Sheets format
+  var file = DriveApp.createFile(blob).setName('2023-2024 Registration and Attendance.xlsx');
+  var convertedFileId = Drive.Files.copy({title: file.getName(), mimeType: MimeType.GOOGLE_SHEETS}, file.getId(), {convert: true}).id;
+
+  // Step 3: Get the current active spreadsheet
+  var currentSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var currentSheet = currentSpreadsheet.getActiveSheet();
+
+  // Step 4: Open the converted Google Sheets file and read its data
+  var convertedSpreadsheet = SpreadsheetApp.openById(convertedFileId);
+  var data = convertedSpreadsheet.getSheets()[0].getDataRange().getValues();
+
+  // Step 5: Write the data into the current Google Sheet
+  currentSheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+
+  // Step 6: Delete the temporary file and the converted file from Google Drive
+  file.setTrashed(true);
+  DriveApp.getFileById(convertedFileId).setTrashed(true);
+
+  Logger.log('Data imported successfully');
+}
